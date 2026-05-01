@@ -1,0 +1,17 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace
+    ports:
+      - "8080:8080"
+    command: sleep infinity
+    networks:
+      - distributed-order-system_dev
+
+networks:
+  distributed-order-system_dev:
+    external: true

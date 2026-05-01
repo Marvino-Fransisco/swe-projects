@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace
+    command: sleep infinity
+    networks:
+      - distributed-order-system_dev
+
+networks:
+  distributed-order-system_dev:
+    external: true
