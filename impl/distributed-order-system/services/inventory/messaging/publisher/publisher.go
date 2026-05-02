@@ -2,65 +2,24 @@ package publisher
 
 import (
 	"fmt"
-	"log"
 
-	amqp "github.com/rabbitmq/amqp091-go"
+	sharedRabbitMQ "shared/rabbitmq"
 )
 
 type Publisher struct {
-	connection *amqp.Connection
-	channel    *amqp.Channel
+	*sharedRabbitMQ.BasePublisher
 }
 
 func NewPublisher(amqpURL string) (*Publisher, error) {
-	conn, err := amqp.Dial(amqpURL)
+	base, err := sharedRabbitMQ.NewBasePublisher(amqpURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
+		return nil, err
 	}
 
-	ch, err := conn.Channel()
-	if err != nil {
-		conn.Close()
-		return nil, fmt.Errorf("failed to open a channel: %w", err)
-	}
-
-	if err := ch.ExchangeDeclare(
-		"inventories",
-		"topic",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	); err != nil {
-		ch.Close()
-		conn.Close()
+	if err := base.DeclareExchangeWithDLX("inventories"); err != nil {
+		base.Close()
 		return nil, fmt.Errorf("failed to declare inventories exchange: %w", err)
 	}
 
-	if err := ch.ExchangeDeclare(
-		"inventories.dlx",
-		"topic",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	); err != nil {
-		ch.Close()
-		conn.Close()
-		return nil, fmt.Errorf("failed to declare inventories.dlx exchange: %w", err)
-	}
-
-	log.Println("Publisher connected to RabbitMQ successfully")
-	return &Publisher{connection: conn, channel: ch}, nil
-}
-
-func (p *Publisher) Close() {
-	if p.channel != nil {
-		p.channel.Close()
-	}
-	if p.connection != nil {
-		p.connection.Close()
-	}
+	return &Publisher{BasePublisher: base}, nil
 }

@@ -9,6 +9,8 @@ import (
 	"inventory-service/messaging/publisher"
 	"inventory-service/routes"
 
+	sharedTx "shared/tx"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -18,7 +20,7 @@ import (
 func InitApp(db *gorm.DB, pub *publisher.Publisher) *app.Application {
 	repo := dbrepository.NewGormInventoryRepository(db)
 	readModel := dbrepository.NewGormInventoryReadModel(db)
-	dbTx := dbrepository.NewDBTransaction(db)
+	dbTx := sharedTx.NewDBTransaction(db)
 
 	reserveStockHandler := command.NewReserveStockHandler(repo, pub, dbTx)
 	completeReservationHandler := command.NewCompleteReservationHandler(repo)

@@ -9,11 +9,13 @@ import (
 
 	"inventory-service/internal/app/command"
 
+	sharedRabbitMQ "shared/rabbitmq"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func (c *Consumer) StartConsumingOrderEvents() error {
-	deliveries, err := c.channel.Consume(
+	deliveries, err := c.Channel.Consume(
 		"inventories.orders",
 		"",
 		false,
@@ -42,7 +44,7 @@ func (c *Consumer) handleOrderDeliveries(deliveries <-chan amqp.Delivery) {
 		var claimCheck ClaimCheckMessage
 		if err := json.Unmarshal(d.Body, &claimCheck); err != nil {
 			log.Printf("Failed to unmarshal claim check message: %v", err)
-			if err := c.publishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
+			if err := c.PublishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
 				log.Printf("Failed to publish order message to DLQ: %v", err)
 			}
 			d.Ack(false)
@@ -51,7 +53,7 @@ func (c *Consumer) handleOrderDeliveries(deliveries <-chan amqp.Delivery) {
 
 		if claimCheck.OrderID == "" || claimCheck.ClaimCheckKey == "" {
 			log.Printf("Received claim check message with empty orderId or claimCheckKey")
-			if err := c.publishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
+			if err := c.PublishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
 				log.Printf("Failed to publish order message to DLQ: %v", err)
 			}
 			d.Ack(false)
@@ -62,16 +64,16 @@ func (c *Consumer) handleOrderDeliveries(deliveries <-chan amqp.Delivery) {
 		payloadBytes, err := c.redisClient.Get(context.Background(), claimCheck.ClaimCheckKey).Bytes()
 		if err != nil {
 			log.Printf("Failed to fetch payload from Redis for order %s (key=%s): %v", claimCheck.OrderID, claimCheck.ClaimCheckKey, err)
-			retryCount := getRetryCount(d.Headers) + 1
+			retryCount := sharedRabbitMQ.GetRetryCount(d.Headers) + 1
 			if retryCount >= maxRetryCount {
 				log.Printf("Message for order %s exceeded max retries (%d), sending to DLQ", claimCheck.OrderID, maxRetryCount)
-				if err := c.publishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
+				if err := c.PublishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
 					log.Printf("Failed to publish order message to DLQ: %v", err)
 				}
 				c.removeClaimCheck(claimCheck.ClaimCheckKey, claimCheck.OrderID)
 			} else {
 				log.Printf("Retrying message for order %s, attempt %d/%d", claimCheck.OrderID, retryCount, maxRetryCount)
-				if err := c.publishToRetry("orders.dlx", "inventories.orders.retry", d.Body, retryCount); err != nil {
+				if err := c.PublishToRetry("orders.dlx", "inventories.orders.retry", d.Body, retryCount); err != nil {
 					log.Printf("Failed to publish order message to retry queue: %v", err)
 				}
 			}
@@ -83,7 +85,7 @@ func (c *Consumer) handleOrderDeliveries(deliveries <-chan amqp.Delivery) {
 		var msg OrderCreatedPayload
 		if err := json.Unmarshal(payloadBytes, &msg); err != nil {
 			log.Printf("Failed to unmarshal order payload from Redis for order %s: %v", claimCheck.OrderID, err)
-			if err := c.publishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
+			if err := c.PublishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
 				log.Printf("Failed to publish order message to DLQ: %v", err)
 			}
 			c.removeClaimCheck(claimCheck.ClaimCheckKey, claimCheck.OrderID)
@@ -93,7 +95,7 @@ func (c *Consumer) handleOrderDeliveries(deliveries <-chan amqp.Delivery) {
 
 		if msg.ID == "" || len(msg.Products) == 0 {
 			log.Printf("Received order payload with empty ID or no products for order %s", claimCheck.OrderID)
-			if err := c.publishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
+			if err := c.PublishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
 				log.Printf("Failed to publish order message to DLQ: %v", err)
 			}
 			c.removeClaimCheck(claimCheck.ClaimCheckKey, claimCheck.OrderID)
@@ -119,7 +121,7 @@ func (c *Consumer) handleOrderDeliveries(deliveries <-chan amqp.Delivery) {
 
 		if err := c.app.Commands.ReserveStock.Handle(context.Background(), cmd); err != nil {
 			log.Printf("Failed to reserve stock for order %s: %v", msg.ID, err)
-			if err := c.publishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
+			if err := c.PublishToDLQ("orders.dlx", "inventories.orders.failed", d.Body); err != nil {
 				log.Printf("Failed to publish order message to DLQ: %v", err)
 			}
 			c.removeClaimCheck(claimCheck.ClaimCheckKey, claimCheck.OrderID)

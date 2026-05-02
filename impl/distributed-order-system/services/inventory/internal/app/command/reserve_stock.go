@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"inventory-service/internal/adapters/dbrepository"
 	"inventory-service/internal/domain/inventory"
 	"inventory-service/internal/events"
+
+	sharedTx "shared/tx"
 )
 
 // OrderProduct holds the product data from an incoming order created event.
@@ -30,11 +31,11 @@ type ReserveStock struct {
 type ReserveStockHandler struct {
 	repo      inventory.Repository
 	publisher InventoryEventPublisher
-	dbTx      dbrepository.DBTransaction
+	dbTx      sharedTx.DBTransaction
 }
 
 // NewReserveStockHandler constructs a new handler with its dependencies.
-func NewReserveStockHandler(repo inventory.Repository, publisher InventoryEventPublisher, dbTx dbrepository.DBTransaction) ReserveStockHandler {
+func NewReserveStockHandler(repo inventory.Repository, publisher InventoryEventPublisher, dbTx sharedTx.DBTransaction) ReserveStockHandler {
 	return ReserveStockHandler{
 		repo:      repo,
 		publisher: publisher,

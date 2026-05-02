@@ -7,9 +7,11 @@ require (
 	github.com/go-faker/faker/v4 v4.7.0
 	github.com/rabbitmq/amqp091-go v1.11.0
 	github.com/redis/go-redis/v9 v9.19.0
-	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.31.1
+	shared v0.0.0
 )
+
+replace shared => /workspace/shared
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
@@ -50,4 +52,5 @@ require (
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
+	gorm.io/driver/postgres v1.5.11 // indirect
 )

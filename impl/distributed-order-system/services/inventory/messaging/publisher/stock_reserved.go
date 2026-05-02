@@ -18,7 +18,7 @@ func (p *Publisher) PublishStockReserved(ctx context.Context, event events.Stock
 		return err
 	}
 
-	err = p.channel.PublishWithContext(
+	err = p.Channel.PublishWithContext(
 		ctx,
 		"inventories",
 		"inventories.reserved",

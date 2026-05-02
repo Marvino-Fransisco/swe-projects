@@ -4,7 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ..:/workspace
+      - ..:/workspace/app
+      - ../../../shared:/workspace/shared
     working_dir: /workspace
     command: sleep infinity
     networks:

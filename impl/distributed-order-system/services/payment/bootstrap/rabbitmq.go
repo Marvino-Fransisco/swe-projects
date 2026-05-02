@@ -3,15 +3,16 @@ package bootstrap
 import (
 	"log"
 
-	"payment-service/config"
 	"payment-service/internal/app"
 	"payment-service/messaging/consumer"
 	"payment-service/messaging/publisher"
+
+	sharedRabbitMQ "shared/rabbitmq"
 )
 
 // InitPublisher creates the RabbitMQ publisher.
 func InitPublisher() *publisher.Publisher {
-	cfg := config.DefaultRabbitMQConfig()
+	cfg := sharedRabbitMQ.DefaultConfig()
 
 	pub, err := publisher.NewPublisher(cfg.AMQPURL)
 	if err != nil {
@@ -24,7 +25,7 @@ func InitPublisher() *publisher.Publisher {
 // InitRabbitMQ creates the consumer and starts listening for events.
 // It uses the application layer to handle payment creation commands.
 func InitRabbitMQ(application *app.Application) *consumer.Consumer {
-	cfg := config.DefaultRabbitMQConfig()
+	cfg := sharedRabbitMQ.DefaultConfig()
 
 	con, err := consumer.NewConsumer(cfg.AMQPURL, application)
 	if err != nil {

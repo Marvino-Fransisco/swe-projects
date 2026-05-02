@@ -3,15 +3,16 @@ package bootstrap
 import (
 	"log"
 
-	"order-service/config"
 	"order-service/internal/adapters/dbrepository"
+
+	sharedDB "shared/db"
 
 	"gorm.io/gorm"
 )
 
 func InitDatabase() *gorm.DB {
-	cfg := config.DefaultConfig()
-	db, err := config.Connect(cfg)
+	cfg := sharedDB.DefaultConfig()
+	db, err := sharedDB.Connect(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}

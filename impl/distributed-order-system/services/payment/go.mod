@@ -5,10 +5,12 @@ go 1.26.2
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
-	github.com/rabbitmq/amqp091-go v1.10.0
-	gorm.io/driver/postgres v1.5.11
+	github.com/rabbitmq/amqp091-go v1.11.0
 	gorm.io/gorm v1.31.1
+	shared v0.0.0
 )
+
+replace shared => /workspace/shared
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
@@ -47,4 +49,5 @@ require (
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
+	gorm.io/driver/postgres v1.5.11 // indirect
 )

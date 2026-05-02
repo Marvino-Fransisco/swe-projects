@@ -18,7 +18,7 @@ func (p *Publisher) PublishPaymentSucceeded(ctx context.Context, event events.Pa
 		return err
 	}
 
-	err = p.channel.PublishWithContext(
+	err = p.Channel.PublishWithContext(
 		ctx,
 		"payments",
 		"payments.succeeded",

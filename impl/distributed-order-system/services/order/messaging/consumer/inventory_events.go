@@ -11,13 +11,15 @@ import (
 	"order-service/internal/app/command"
 	"order-service/internal/domain/order"
 
+	sharedRabbitMQ "shared/rabbitmq"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 const webhookURL = "http://api-gateway_devcontainer-app-1:8080/api/webhooks"
 
 func (c *Consumer) StartConsumingInventoryEvents() error {
-	deliveries, err := c.channel.Consume(
+	deliveries, err := c.Channel.Consume(
 		"orders.inventories",
 		"",
 		false,
@@ -42,7 +44,7 @@ func (c *Consumer) handleInventoryDeliveries(deliveries <-chan amqp.Delivery) {
 		var msg InventoryMessage
 		if err := json.Unmarshal(d.Body, &msg); err != nil {
 			log.Printf("Failed to unmarshal inventory message: %v", err)
-			if err := c.publishToDLQ("inventories.dlx", "orders.inventories.failed", d.Body); err != nil {
+			if err := c.PublishToDLQ("inventories.dlx", "orders.inventories.failed", d.Body); err != nil {
 				log.Printf("Failed to publish inventory message to DLQ: %v", err)
 			}
 			d.Ack(false)
@@ -51,7 +53,7 @@ func (c *Consumer) handleInventoryDeliveries(deliveries <-chan amqp.Delivery) {
 
 		if msg.OrderID == "" {
 			log.Printf("Received inventory message with empty order_id")
-			if err := c.publishToDLQ("inventories.dlx", "orders.inventories.failed", d.Body); err != nil {
+			if err := c.PublishToDLQ("inventories.dlx", "orders.inventories.failed", d.Body); err != nil {
 				log.Printf("Failed to publish inventory message to DLQ: %v", err)
 			}
 			d.Ack(false)
@@ -65,15 +67,15 @@ func (c *Consumer) handleInventoryDeliveries(deliveries <-chan amqp.Delivery) {
 				FailureReason: order.FailureReasonInsufficientInventory,
 			}); err != nil {
 				log.Printf("Failed to fail order %s: %v", msg.OrderID, err)
-				retryCount := getRetryCount(d.Headers) + 1
-				if retryCount >= maxRetries {
-					log.Printf("Message for order %s exceeded max retries (%d), sending to DLQ", msg.OrderID, maxRetries)
-					if err := c.publishToDLQ("inventories.dlx", "orders.inventories.failed", d.Body); err != nil {
+				retryCount := sharedRabbitMQ.GetRetryCount(d.Headers) + 1
+				if retryCount >= sharedRabbitMQ.DefaultMaxRetries {
+					log.Printf("Message for order %s exceeded max retries (%d), sending to DLQ", msg.OrderID, sharedRabbitMQ.DefaultMaxRetries)
+					if err := c.PublishToDLQ("inventories.dlx", "orders.inventories.failed", d.Body); err != nil {
 						log.Printf("Failed to publish inventory message to DLQ: %v", err)
 					}
 				} else {
-					log.Printf("Retrying message for order %s, attempt %d/%d", msg.OrderID, retryCount, maxRetries)
-					if err := c.publishToRetry("inventories.dlx", "orders.inventories.retry", d.Body, retryCount); err != nil {
+					log.Printf("Retrying message for order %s, attempt %d/%d", msg.OrderID, retryCount, sharedRabbitMQ.DefaultMaxRetries)
+					if err := c.PublishToRetry("inventories.dlx", "orders.inventories.retry", d.Body, retryCount); err != nil {
 						log.Printf("Failed to publish inventory message to retry queue: %v", err)
 					}
 				}
@@ -93,15 +95,15 @@ func (c *Consumer) handleInventoryDeliveries(deliveries <-chan amqp.Delivery) {
 				Status:  order.StatusCancelled,
 			}); err != nil {
 				log.Printf("Failed to update order %s status to cancelled: %v", msg.OrderID, err)
-				retryCount := getRetryCount(d.Headers) + 1
-				if retryCount >= maxRetries {
-					log.Printf("Message for order %s exceeded max retries (%d), sending to DLQ", msg.OrderID, maxRetries)
-					if err := c.publishToDLQ("inventories.dlx", "orders.inventories.failed", d.Body); err != nil {
+				retryCount := sharedRabbitMQ.GetRetryCount(d.Headers) + 1
+				if retryCount >= sharedRabbitMQ.DefaultMaxRetries {
+					log.Printf("Message for order %s exceeded max retries (%d), sending to DLQ", msg.OrderID, sharedRabbitMQ.DefaultMaxRetries)
+					if err := c.PublishToDLQ("inventories.dlx", "orders.inventories.failed", d.Body); err != nil {
 						log.Printf("Failed to publish inventory message to DLQ: %v", err)
 					}
 				} else {
-					log.Printf("Retrying message for order %s, attempt %d/%d", msg.OrderID, retryCount, maxRetries)
-					if err := c.publishToRetry("inventories.dlx", "orders.inventories.retry", d.Body, retryCount); err != nil {
+					log.Printf("Retrying message for order %s, attempt %d/%d", msg.OrderID, retryCount, sharedRabbitMQ.DefaultMaxRetries)
+					if err := c.PublishToRetry("inventories.dlx", "orders.inventories.retry", d.Body, retryCount); err != nil {
 						log.Printf("Failed to publish inventory message to retry queue: %v", err)
 					}
 				}

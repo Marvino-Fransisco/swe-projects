@@ -9,11 +9,13 @@ import (
 	"order-service/internal/app/command"
 	"order-service/internal/domain/order"
 
+	sharedRabbitMQ "shared/rabbitmq"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func (c *Consumer) StartConsumingPaymentEvents() error {
-	deliveries, err := c.channel.Consume(
+	deliveries, err := c.Channel.Consume(
 		"orders.payments",
 		"",
 		false,
@@ -65,15 +67,15 @@ func (c *Consumer) handlePaymentDeliveries(deliveries <-chan amqp.Delivery) {
 			Status:  status,
 		}); err != nil {
 			log.Printf("Failed to update order %s status to %s: %v", msg.OrderID, status, err)
-			retryCount := getRetryCount(d.Headers) + 1
-			if retryCount >= maxRetries {
-				log.Printf("Message for order %s exceeded max retries (%d), sending to DLQ", msg.OrderID, maxRetries)
-				if err := c.publishToDLQ("payments.dlx", "orders.payments.failed", d.Body); err != nil {
+			retryCount := sharedRabbitMQ.GetRetryCount(d.Headers) + 1
+			if retryCount >= sharedRabbitMQ.DefaultMaxRetries {
+				log.Printf("Message for order %s exceeded max retries (%d), sending to DLQ", msg.OrderID, sharedRabbitMQ.DefaultMaxRetries)
+				if err := c.PublishToDLQ("payments.dlx", "orders.payments.failed", d.Body); err != nil {
 					log.Printf("Failed to publish payment message to DLQ: %v", err)
 				}
 			} else {
-				log.Printf("Retrying message for order %s, attempt %d/%d", msg.OrderID, retryCount, maxRetries)
-				if err := c.publishToRetry("payments.dlx", "orders.payments.retry", d.Body, retryCount); err != nil {
+				log.Printf("Retrying message for order %s, attempt %d/%d", msg.OrderID, retryCount, sharedRabbitMQ.DefaultMaxRetries)
+				if err := c.PublishToRetry("payments.dlx", "orders.payments.retry", d.Body, retryCount); err != nil {
 					log.Printf("Failed to publish payment message to retry queue: %v", err)
 				}
 			}

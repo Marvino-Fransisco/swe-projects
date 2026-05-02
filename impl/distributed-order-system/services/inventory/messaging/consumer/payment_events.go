@@ -8,11 +8,13 @@ import (
 
 	"inventory-service/internal/app/command"
 
+	sharedRabbitMQ "shared/rabbitmq"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func (c *Consumer) StartConsumingPaymentEvents() error {
-	deliveries, err := c.channel.Consume(
+	deliveries, err := c.Channel.Consume(
 		"inventories.payments",
 		"",
 		false,
@@ -38,7 +40,7 @@ func (c *Consumer) handlePaymentDeliveries(deliveries <-chan amqp.Delivery) {
 		var msg PaymentMessage
 		if err := json.Unmarshal(d.Body, &msg); err != nil {
 			log.Printf("Failed to unmarshal payment message: %v", err)
-			if err := c.publishToDLQ("payments.dlx", "inventories.payments.failed", d.Body); err != nil {
+			if err := c.PublishToDLQ("payments.dlx", "inventories.payments.failed", d.Body); err != nil {
 				log.Printf("Failed to publish payment message to DLQ: %v", err)
 			}
 			d.Ack(false)
@@ -47,7 +49,7 @@ func (c *Consumer) handlePaymentDeliveries(deliveries <-chan amqp.Delivery) {
 
 		if msg.OrderID == "" {
 			log.Printf("Received payment message with empty order_id")
-			if err := c.publishToDLQ("payments.dlx", "inventories.payments.failed", d.Body); err != nil {
+			if err := c.PublishToDLQ("payments.dlx", "inventories.payments.failed", d.Body); err != nil {
 				log.Printf("Failed to publish payment message to DLQ: %v", err)
 			}
 			d.Ack(false)
@@ -60,15 +62,15 @@ func (c *Consumer) handlePaymentDeliveries(deliveries <-chan amqp.Delivery) {
 				OrderID: msg.OrderID,
 			}); err != nil {
 				log.Printf("Failed to complete reservation for order %s: %v", msg.OrderID, err)
-				retryCount := getRetryCount(d.Headers) + 1
+				retryCount := sharedRabbitMQ.GetRetryCount(d.Headers) + 1
 				if retryCount >= maxRetryCount {
 					log.Printf("Message for order %s exceeded max retries (%d), sending to DLQ", msg.OrderID, maxRetryCount)
-					if err := c.publishToDLQ("payments.dlx", "inventories.payments.failed", d.Body); err != nil {
+					if err := c.PublishToDLQ("payments.dlx", "inventories.payments.failed", d.Body); err != nil {
 						log.Printf("Failed to publish payment message to DLQ: %v", err)
 					}
 				} else {
 					log.Printf("Retrying message for order %s, attempt %d/%d", msg.OrderID, retryCount, maxRetryCount)
-					if err := c.publishToRetry("payments.dlx", "inventories.payments.retry", d.Body, retryCount); err != nil {
+					if err := c.PublishToRetry("payments.dlx", "inventories.payments.retry", d.Body, retryCount); err != nil {
 						log.Printf("Failed to publish payment message to retry queue: %v", err)
 					}
 				}
@@ -83,15 +85,15 @@ func (c *Consumer) handlePaymentDeliveries(deliveries <-chan amqp.Delivery) {
 				OrderID: msg.OrderID,
 			}); err != nil {
 				log.Printf("Failed to cancel reservation for order %s: %v", msg.OrderID, err)
-				retryCount := getRetryCount(d.Headers) + 1
+				retryCount := sharedRabbitMQ.GetRetryCount(d.Headers) + 1
 				if retryCount >= maxRetryCount {
 					log.Printf("Message for order %s exceeded max retries (%d), sending to DLQ", msg.OrderID, maxRetryCount)
-					if err := c.publishToDLQ("payments.dlx", "inventories.payments.failed", d.Body); err != nil {
+					if err := c.PublishToDLQ("payments.dlx", "inventories.payments.failed", d.Body); err != nil {
 						log.Printf("Failed to publish payment message to DLQ: %v", err)
 					}
 				} else {
 					log.Printf("Retrying message for order %s, attempt %d/%d", msg.OrderID, retryCount, maxRetryCount)
-					if err := c.publishToRetry("payments.dlx", "inventories.payments.retry", d.Body, retryCount); err != nil {
+					if err := c.PublishToRetry("payments.dlx", "inventories.payments.retry", d.Body, retryCount); err != nil {
 						log.Printf("Failed to publish payment message to retry queue: %v", err)
 					}
 				}
@@ -103,7 +105,7 @@ func (c *Consumer) handlePaymentDeliveries(deliveries <-chan amqp.Delivery) {
 
 		default:
 			log.Printf("Unknown payment routing key: %s", routingKey)
-			if err := c.publishToDLQ("payments.dlx", "inventories.payments.failed", d.Body); err != nil {
+			if err := c.PublishToDLQ("payments.dlx", "inventories.payments.failed", d.Body); err != nil {
 				log.Printf("Failed to publish payment message to DLQ: %v", err)
 			}
 		}

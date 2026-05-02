@@ -3,6 +3,7 @@ module order-service
 go 1.26.2
 
 require (
+	shared v0.0.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/rabbitmq/amqp091-go v1.10.0
@@ -10,6 +11,8 @@ require (
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
 )
+
+replace shared => /workspace/shared
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect

@@ -3,17 +3,18 @@ package bootstrap
 import (
 	"log"
 
-	"order-service/config"
 	"order-service/internal/app"
 	"order-service/messaging/consumer"
 	"order-service/messaging/publisher"
+
+	sharedRabbitMQ "shared/rabbitmq"
 
 	"github.com/redis/go-redis/v9"
 )
 
 // InitPublisher creates the RabbitMQ publisher with the shared Redis client.
 func InitPublisher(redisClient *redis.Client) *publisher.Publisher {
-	cfg := config.DefaultRabbitMQConfig()
+	cfg := sharedRabbitMQ.DefaultConfig()
 
 	pub, err := publisher.NewPublisher(cfg.AMQPURL, redisClient)
 	if err != nil {
@@ -26,7 +27,7 @@ func InitPublisher(redisClient *redis.Client) *publisher.Publisher {
 // InitRabbitMQ creates the consumer and starts listening for events.
 // It uses the application layer to handle status update commands.
 func InitRabbitMQ(application *app.Application) *consumer.Consumer {
-	cfg := config.DefaultRabbitMQConfig()
+	cfg := sharedRabbitMQ.DefaultConfig()
 
 	con, err := consumer.NewConsumer(cfg.AMQPURL, application)
 	if err != nil {

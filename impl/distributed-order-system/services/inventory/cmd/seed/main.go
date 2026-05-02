@@ -5,7 +5,7 @@ import (
 	"log"
 	"math/rand"
 
-	"inventory-service/config"
+	sharedDB "shared/db"
 	"inventory-service/internal/adapters/dbrepository"
 	"inventory-service/internal/domain/inventory"
 
@@ -14,8 +14,8 @@ import (
 
 func main() {
 	// Connect to database
-	cfg := config.DefaultConfig()
-	db, err := config.Connect(cfg)
+	cfg := sharedDB.DefaultConfig()
+	db, err := sharedDB.Connect(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}

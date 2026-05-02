@@ -52,7 +52,7 @@ func (p *Publisher) PublishOrderCreated(ctx context.Context, event events.OrderC
 		return fmt.Errorf("failed to marshal claim check message: %w", err)
 	}
 
-	err = p.channel.PublishWithContext(
+	err = p.Channel.PublishWithContext(
 		ctx,
 		"orders",
 		"orders.created",

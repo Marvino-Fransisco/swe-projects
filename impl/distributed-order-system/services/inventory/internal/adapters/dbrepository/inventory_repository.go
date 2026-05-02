@@ -6,6 +6,8 @@ import (
 
 	"inventory-service/internal/domain/inventory"
 
+	sharedTx "shared/tx"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -20,38 +22,6 @@ func NewGormInventoryRepository(db *gorm.DB) *GormInventoryRepository {
 	return &GormInventoryRepository{db: db}
 }
 
-// TxKey is the context key used to store the transaction-scoped *gorm.DB.
-// The DBTransaction function in the command layer sets this value, and the
-// repository layer reads it to transparently participate in the transaction.
-var TxKey txKey
-
-type txKey struct{}
-
-// DBTransaction executes a function within a database transaction.
-type DBTransaction func(ctx context.Context, fn func(ctx context.Context) error) error
-
-// NewDBTransaction creates a DBTransaction using a GORM database connection.
-// The transaction's *gorm.DB is stored in the context so that repository methods
-// automatically participate in the transaction via db_(ctx).
-func NewDBTransaction(db *gorm.DB) DBTransaction {
-	return func(ctx context.Context, fn func(ctx context.Context) error) error {
-		return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			txCtx := context.WithValue(ctx, TxKey, tx)
-			return fn(txCtx)
-		})
-	}
-}
-
-// db returns the *gorm.DB to use for the given context.
-// If a transaction has been started via DBTransaction, the transaction-scoped
-// DB is extracted from context; otherwise the default DB is used.
-func (r *GormInventoryRepository) db_(ctx context.Context) *gorm.DB {
-	if tx, ok := ctx.Value(txKey{}).(*gorm.DB); ok {
-		return tx
-	}
-	return r.db
-}
-
 // AutoMigrate runs GORM auto-migration for the persistence models.
 func (r *GormInventoryRepository) AutoMigrate() error {
 	return r.db.AutoMigrate(&inventoryModel{}, &reservationModel{})
@@ -61,9 +31,9 @@ func (r *GormInventoryRepository) AutoMigrate() error {
 // When called within a transaction (detected via context), it automatically
 // adds SELECT FOR UPDATE to acquire row-level locks.
 func (r *GormInventoryRepository) FindByProductIDs(ctx context.Context, productIDs []string) ([]inventory.Inventory, error) {
-	query := r.db_(ctx).WithContext(ctx).Where("product_id IN ?", productIDs)
+	query := sharedTx.DBFromContext(ctx, r.db).WithContext(ctx).Where("product_id IN ?", productIDs)
 
-	if _, ok := ctx.Value(txKey{}).(*gorm.DB); ok {
+	if _, ok := ctx.Value(sharedTx.TxKey).(*gorm.DB); ok {
 		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
 	}
 
@@ -81,7 +51,7 @@ func (r *GormInventoryRepository) FindByProductIDs(ctx context.Context, productI
 
 // UpdateInventory persists changes to an existing inventory item.
 func (r *GormInventoryRepository) UpdateInventory(ctx context.Context, inv *inventory.Inventory) error {
-	result := r.db_(ctx).WithContext(ctx).Model(&inventoryModel{}).Where("id = ?", inv.ID()).Updates(map[string]interface{}{
+	result := sharedTx.DBFromContext(ctx, r.db).WithContext(ctx).Model(&inventoryModel{}).Where("id = ?", inv.ID()).Updates(map[string]interface{}{
 		"stock":      inv.Stock(),
 		"status":     inv.Status().String(),
 		"updated_at": inv.UpdatedAt(),
@@ -98,7 +68,7 @@ func (r *GormInventoryRepository) UpdateInventory(ctx context.Context, inv *inve
 // SaveReservation persists a new reservation.
 func (r *GormInventoryRepository) SaveReservation(ctx context.Context, res inventory.InventoryReservation) error {
 	model := reservationToModel(&res)
-	if err := r.db_(ctx).WithContext(ctx).Create(model).Error; err != nil {
+	if err := sharedTx.DBFromContext(ctx, r.db).WithContext(ctx).Create(model).Error; err != nil {
 		return fmt.Errorf("failed to save reservation: %w", err)
 	}
 	return nil
@@ -107,7 +77,7 @@ func (r *GormInventoryRepository) SaveReservation(ctx context.Context, res inven
 // FindReservationsByOrderID loads all reservations for a given order ID with the specified status.
 func (r *GormInventoryRepository) FindReservationsByOrderID(ctx context.Context, orderID string, status inventory.ReservationStatus) ([]inventory.InventoryReservation, error) {
 	var models []reservationModel
-	if err := r.db_(ctx).WithContext(ctx).Where("order_id = ? AND status = ?", orderID, status.String()).Find(&models).Error; err != nil {
+	if err := sharedTx.DBFromContext(ctx, r.db).WithContext(ctx).Where("order_id = ? AND status = ?", orderID, status.String()).Find(&models).Error; err != nil {
 		return nil, fmt.Errorf("failed to find reservations for order %s: %w", orderID, err)
 	}
 
@@ -120,7 +90,7 @@ func (r *GormInventoryRepository) FindReservationsByOrderID(ctx context.Context,
 
 // UpdateReservation persists status changes to an existing reservation.
 func (r *GormInventoryRepository) UpdateReservation(ctx context.Context, res *inventory.InventoryReservation) error {
-	result := r.db_(ctx).WithContext(ctx).Model(&reservationModel{}).Where("id = ?", res.ID()).Updates(map[string]interface{}{
+	result := sharedTx.DBFromContext(ctx, r.db).WithContext(ctx).Model(&reservationModel{}).Where("id = ?", res.ID()).Updates(map[string]interface{}{
 		"status":     res.Status().String(),
 		"updated_at": res.UpdatedAt(),
 	})

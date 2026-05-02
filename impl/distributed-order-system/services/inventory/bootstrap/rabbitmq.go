@@ -3,7 +3,7 @@ package bootstrap
 import (
 	"log"
 
-	"inventory-service/config"
+	sharedRabbitMQ "shared/rabbitmq"
 	"inventory-service/internal/app"
 	"inventory-service/messaging/consumer"
 	"inventory-service/messaging/publisher"
@@ -13,7 +13,7 @@ import (
 
 // InitPublisher creates the RabbitMQ publisher.
 func InitPublisher() *publisher.Publisher {
-	cfg := config.DefaultRabbitMQConfig()
+	cfg := sharedRabbitMQ.DefaultConfig()
 
 	pub, err := publisher.NewPublisher(cfg.AMQPURL)
 	if err != nil {
@@ -26,7 +26,7 @@ func InitPublisher() *publisher.Publisher {
 // InitRabbitMQ creates the consumer and starts listening for events.
 // It uses the application layer to handle commands.
 func InitRabbitMQ(application *app.Application, redisClient *redis.Client) *consumer.Consumer {
-	cfg := config.DefaultRabbitMQConfig()
+	cfg := sharedRabbitMQ.DefaultConfig()
 
 	con, err := consumer.NewConsumer(cfg.AMQPURL, application, redisClient)
 	if err != nil {

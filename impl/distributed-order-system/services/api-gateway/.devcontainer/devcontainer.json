@@ -5,10 +5,8 @@
   "workspaceFolder": "/workspace",
   "customizations": {
     "vscode": {
-      "extensions": [
-        "golang.go"
-      ]
+      "extensions": ["golang.go"]
     }
   },
-  "postCreateCommand": "go version && air -v"
+  "postCreateCommand": "go version && air -v && go mod tidy"
 }
