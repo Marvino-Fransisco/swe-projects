@@ -1,0 +1,36 @@
+{
+  "name": "web-backend",
+  "dockerComposeFile": ["docker-compose.yml"],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go"
+      ],
+      "settings": {
+        "go.useLanguageServer": true,
+        "go.lintTool": "staticcheck",
+        "go.lintOnSave": "package",
+        "go.vetOnSave": "package",
+        "go.formatTool": "gofmt",
+        "go.toolsManagement.autoUpdate": true,
+        "go.toolsManagement.checkForUpdates": "local",
+        "gopls": {
+          "ui.diagnostic.staticcheck": true,
+          "ui.diagnostic.analyses": {
+            "unusedparams": true,
+            "shadow": true,
+            "nilness": true,
+            "unusedwrite": true,
+            "useany": true,
+            "fieldalignment": true,
+            "printf": true,
+            "composites": true
+          }
+        }
+      }
+    }
+  },
+  "postCreateCommand": "go version && air -v && go mod tidy"
+}

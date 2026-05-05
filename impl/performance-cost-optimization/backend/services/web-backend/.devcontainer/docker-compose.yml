@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace/app
+      - ../../../shared:/workspace/shared
+    working_dir: /workspace/app
+    command: sleep infinity
+    ports:
+      - "8080:8080"
+    networks:
+      - performance-cost-optimization_dev
+
+networks:
+  performance-cost-optimization_dev:
+    external: true
+
