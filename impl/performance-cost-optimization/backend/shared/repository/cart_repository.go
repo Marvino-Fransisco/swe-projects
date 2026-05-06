@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"shared/config"
 	"shared/domain/cart"
@@ -19,40 +20,12 @@ func NewCartRepository(db *gorm.DB) cart.CartRepository {
 	return &cartRepository{db: db}
 }
 
-// FindByUserID retrieves all cart items for a given user.
-func (r *cartRepository) FindByUserID(ctx context.Context, userID string) ([]cart.Cart, error) {
-	db := config.DBFromContext(ctx, r.db)
-	var items []cart.Cart
-	err := db.WithContext(ctx).Where("user_id = ?", userID).Find(&items).Error
-	return items, err
-}
-
-// FindByUserIDAfterCursor retrieves cart items for a user using cursor-based pagination.
-// Items are ordered by ID ascending. When cursor is non-empty, only items with id > cursor are returned.
-// The query fetches limit items.
-func (r *cartRepository) FindByUserIDAfterCursor(ctx context.Context, userID, cursor string, limit int) ([]cart.Cart, error) {
-	db := config.DBFromContext(ctx, r.db)
-
-	query := db.WithContext(ctx).
-		Where("user_id = ?", userID).
-		Order("id ASC").
-		Limit(limit)
-
-	if cursor != "" {
-		query = query.Where("id > ?", cursor)
-	}
-
-	var items []cart.Cart
-	err := query.Find(&items).Error
-	return items, err
-}
-
-// FindByUserAndProduct retrieves a specific cart item by user and product.
+// FindByUserID retrieves the cart for a given user, preloading items and their products.
 // Returns nil if not found.
-func (r *cartRepository) FindByUserAndProduct(ctx context.Context, userID, productID string) (*cart.Cart, error) {
+func (r *cartRepository) FindByUserID(ctx context.Context, userID string) (*cart.Cart, error) {
 	db := config.DBFromContext(ctx, r.db)
 	var c cart.Cart
-	err := db.WithContext(ctx).Where("user_id = ? AND product_id = ?", userID, productID).First(&c).Error
+	err := db.WithContext(ctx).Preload("Items").Preload("Items.Product").Where("user_id = ?", userID).First(&c).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -62,14 +35,48 @@ func (r *cartRepository) FindByUserAndProduct(ctx context.Context, userID, produ
 	return &c, nil
 }
 
-// Save persists a cart item (create or update).
+// Save persists a cart (create or update), including its item associations.
 func (r *cartRepository) Save(ctx context.Context, c *cart.Cart) error {
 	db := config.DBFromContext(ctx, r.db)
 	return db.WithContext(ctx).Save(c).Error
 }
 
-// Delete removes a cart item.
+// Delete removes a cart and its items.
 func (r *cartRepository) Delete(ctx context.Context, c *cart.Cart) error {
 	db := config.DBFromContext(ctx, r.db)
-	return db.WithContext(ctx).Delete(c).Error
+	return db.WithContext(ctx).Select("Items").Delete(c).Error
+}
+
+func (r *cartRepository) ReplaceCart(ctx context.Context, c *cart.Cart) error {
+	db := config.DBFromContext(ctx, r.db)
+
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Lock the cart row to prevent concurrent modifications.
+		if err := tx.
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("user_id = ?", c.UserID).
+			Find(&cart.Cart{}).Error; err != nil {
+			return err
+		}
+
+		// Delete existing items only — keep the parent carts row.
+		if err := tx.
+			Where("cart_id = ?", c.ID).
+			Delete(&cart.CartItem{}).Error; err != nil {
+			return err
+		}
+
+		// Insert new items.
+		if len(c.Items) > 0 {
+			for i := range c.Items {
+				c.Items[i].CartID = c.ID
+			}
+
+			if err := tx.Create(&c.Items).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

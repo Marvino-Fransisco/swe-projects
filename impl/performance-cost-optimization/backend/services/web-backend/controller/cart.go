@@ -36,8 +36,12 @@ func (ctrl *cartController) GetCart(c *gin.Context) {
 		return
 	}
 
+	page, pageSize := ParsePagination(c)
+
 	resp, err := ctrl.usecase.GetCart(c.Request.Context(), cart.GetCartRequest{
-		UserID: userID,
+		UserID:   userID,
+		Page:     page,
+		PageSize: pageSize,
 	})
 	if err != nil {
 		handleError(c, err)
@@ -68,7 +72,7 @@ func (ctrl *cartController) AddItem(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, "item added to cart", resp.Items)
+	response.Success(c, http.StatusOK, "item added to cart", resp.Item)
 }
 
 // RemoveItem handles DELETE /cart/items/:productId.
@@ -94,7 +98,7 @@ func (ctrl *cartController) RemoveItem(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, "item removed from cart", resp.Items)
+	response.Success(c, http.StatusOK, "item removed from cart", resp.Item)
 }
 
 // UpdateItemQuantity handles PUT /cart/items/:productId.
@@ -125,5 +129,5 @@ func (ctrl *cartController) UpdateItemQuantity(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, "cart item updated", resp.Items)
+	response.Success(c, http.StatusOK, "cart item updated", resp.Item)
 }

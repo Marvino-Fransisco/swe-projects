@@ -16,6 +16,7 @@ import (
 	webRepository "shared/repository"
 	"mobile-backend/controller"
 	mobileMiddleware "mobile-backend/middleware"
+	queryRepository "mobile-backend/repository"
 	"mobile-backend/usecases/auth"
 	usecaseCart "mobile-backend/usecases/cart"
 	"mobile-backend/usecases/checkout"
@@ -48,6 +49,12 @@ func main() {
 	orderRepo := webRepository.NewOrderRepository(pgDB)
 	log.Println("Repositories initialized")
 
+	// --- Query Repositories (mobile-backend read-side) ---
+	cartQueryRepo := queryRepository.NewCartQueryRepository(pgDB)
+	productQueryRepo := queryRepository.NewProductQueryRepository(pgDB)
+	orderQueryRepo := queryRepository.NewOrderQueryRepository(pgDB)
+	log.Println("Query repositories initialized")
+
 	// --- Domain Services (from shared module) ---
 	userSvc := user.NewUserService(userRepo)
 	productSvc := product.NewProductService(productRepo)
@@ -57,9 +64,9 @@ func main() {
 
 	// --- Use Cases ---
 	authUC := auth.NewAuthUseCase(userSvc, jwtSvc)
-	productUC := usecaseProduct.NewProductUseCase(productSvc)
-	cartUC := usecaseCart.NewCartUseCase(cartSvc, productSvc)
-	checkoutUC := checkout.NewCheckoutUseCase(cartSvc, orderSvc)
+	productUC := usecaseProduct.NewProductUseCase(productSvc, productQueryRepo)
+	cartUC := usecaseCart.NewCartUseCase(cartSvc, productSvc, cartQueryRepo)
+	checkoutUC := checkout.NewCheckoutUseCase(cartSvc, orderSvc, cartQueryRepo, orderQueryRepo)
 	profileUC := profile.NewProfileUseCase(userSvc)
 	log.Println("Use cases initialized")
 

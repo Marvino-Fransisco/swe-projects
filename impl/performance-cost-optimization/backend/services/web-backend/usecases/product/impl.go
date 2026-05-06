@@ -4,16 +4,21 @@ import (
 	"context"
 
 	"web-backend/apperror"
+	"web-backend/repository"
 
 	productDomain "shared/domain/product"
 )
 
 type productUseCase struct {
-	productSvc *productDomain.ProductService
+	productSvc       *productDomain.ProductService
+	productQueryRepo repository.ProductQueryRepository
 }
 
-func NewProductUseCase(productSvc *productDomain.ProductService) ProductUseCase {
-	return &productUseCase{productSvc: productSvc}
+func NewProductUseCase(productSvc *productDomain.ProductService, productQueryRepo repository.ProductQueryRepository) ProductUseCase {
+	return &productUseCase{
+		productSvc:       productSvc,
+		productQueryRepo: productQueryRepo,
+	}
 }
 
 func (uc *productUseCase) GetByID(ctx context.Context, req GetProductRequest) (*productDomain.Product, error) {
@@ -32,7 +37,7 @@ func (uc *productUseCase) List(ctx context.Context, req ListProductsRequest) (*L
 		MaxPrice:   req.MaxPrice,
 	}
 
-	products, total, err := uc.productSvc.List(ctx, filter)
+	products, total, err := uc.productQueryRepo.FindAllPaginated(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +49,7 @@ func (uc *productUseCase) List(ctx context.Context, req ListProductsRequest) (*L
 }
 
 func (uc *productUseCase) Search(ctx context.Context, req SearchProductsRequest) (*SearchProductsResponse, error) {
-	products, total, err := uc.productSvc.Search(ctx, req.Query, req.Page, req.PageSize)
+	products, total, err := uc.productQueryRepo.SearchPaginated(ctx, req.Query, req.Page, req.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +61,7 @@ func (uc *productUseCase) Search(ctx context.Context, req SearchProductsRequest)
 }
 
 func (uc *productUseCase) GetCategories(ctx context.Context) ([]productDomain.Category, error) {
-	return uc.productSvc.GetCategories(ctx)
+	return uc.productQueryRepo.FindAllCategories(ctx)
 }
 
 func (uc *productUseCase) TrackView(ctx context.Context, req TrackViewRequest) (*TrackViewResponse, error) {

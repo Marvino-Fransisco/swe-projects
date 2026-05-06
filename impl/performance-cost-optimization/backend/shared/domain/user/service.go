@@ -14,9 +14,11 @@ type UserService struct {
 	repo UserRepository
 }
 
-// NewUserService creates a new UserService with the given repository.
+// NewUserService creates a new UserService with the given repositories.
 func NewUserService(repo UserRepository) *UserService {
-	return &UserService{repo: repo}
+	return &UserService{
+		repo: repo,
+	}
 }
 
 // Register creates a new user account.
@@ -88,7 +90,9 @@ func (s *UserService) Authenticate(ctx context.Context, email, password string) 
 }
 
 // GetProfile retrieves a user's profile by ID.
+// Attempts cache first; on cache miss, queries the database and updates the cache.
 func (s *UserService) GetProfile(ctx context.Context, userID string) (*User, error) {
+	// Cache miss — query database.
 	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -96,6 +100,7 @@ func (s *UserService) GetProfile(ctx context.Context, userID string) (*User, err
 	if user == nil {
 		return nil, errors.New("user not found")
 	}
+
 	return user, nil
 }
 

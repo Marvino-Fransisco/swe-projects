@@ -18,10 +18,6 @@ type OrderRepository interface {
 	// FindDetailsByOrderID retrieves all order details for a given order.
 	FindDetailsByOrderID(ctx context.Context, orderID string) ([]OrderDetail, error)
 
-	// FindByUser retrieves a paginated list of orders for a user.
-	// Returns the orders and the total count of matching records.
-	FindByUser(ctx context.Context, userID string, page, pageSize int) ([]Order, int64, error)
-
 	// Update persists changes to an existing order.
 	Update(ctx context.Context, o *Order) error
 }

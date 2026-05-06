@@ -24,6 +24,7 @@ func main() {
 		&user.UserPreferences{},
 		&product.Product{},
 		&cart.Cart{},
+		&cart.CartItem{},
 		&order.Order{},
 		&order.OrderDetail{},
 	); err != nil {

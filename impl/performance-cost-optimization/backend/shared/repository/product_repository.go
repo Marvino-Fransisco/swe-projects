@@ -3,29 +3,21 @@ package repository
 import (
 	"context"
 	"fmt"
-	"strconv"
 
-	goredis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"shared/config"
 	"shared/domain/product"
 )
 
-// productRepository implements product.ProductRepository using GORM and Redis.
+// productRepository implements product.ProductRepository using GORM.
 type productRepository struct {
-	db    *gorm.DB
-	redis *goredis.Client
+	db *gorm.DB
 }
 
-// NewProductRepository creates a new GORM-backed ProductRepository with Redis for view counts.
-func NewProductRepository(db *gorm.DB, redis *goredis.Client) product.ProductRepository {
-	return &productRepository{db: db, redis: redis}
-}
-
-// viewCountKey returns the Redis key used to store a product's view count.
-func viewCountKey(productID string) string {
-	return fmt.Sprintf("product:%s:views", productID)
+// NewProductRepository creates a new GORM-backed ProductRepository.
+func NewProductRepository(db *gorm.DB) product.ProductRepository {
+	return &productRepository{db: db}
 }
 
 // FindByID retrieves a product by its ID.
@@ -124,23 +116,16 @@ func (r *productRepository) FindAllCategories(ctx context.Context) ([]product.Ca
 	return categories, err
 }
 
-// GetViewCount retrieves the current view count for a product from Redis.
-func (r *productRepository) GetViewCount(ctx context.Context, productID string) (int64, error) {
-	val, err := r.redis.Get(ctx, viewCountKey(productID)).Result()
-	if err != nil {
-		if err == goredis.Nil {
-			return 0, nil
-		}
-		return 0, err
+// AddViewCount atomically increments the view count for a product in the database.
+// Uses UPDATE products SET view = view + count WHERE id = productID.
+func (r *productRepository) AddViewCount(ctx context.Context, productID string, count int64) error {
+	db := config.DBFromContext(ctx, r.db)
+	result := db.WithContext(ctx).
+		Model(&product.Product{}).
+		Where("id = ?", productID).
+		Update("view", gorm.Expr("view + ?", count))
+	if result.Error != nil {
+		return fmt.Errorf("failed to add view count for product %s: %w", productID, result.Error)
 	}
-	count, err := strconv.ParseInt(val, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return count, nil
-}
-
-// IncrementViewCount increments the view count for a product by 1 in Redis.
-func (r *productRepository) IncrementViewCount(ctx context.Context, productID string) error {
-	return r.redis.Incr(ctx, viewCountKey(productID)).Err()
+	return nil
 }

@@ -49,7 +49,7 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gorm.io/driver/postgres v1.5.11 // indirect
-	gorm.io/gorm v1.31.1 // indirect; direct
+	gorm.io/gorm v1.31.1 // direct
 )
 
 replace shared => /workspace/shared

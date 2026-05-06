@@ -81,7 +81,7 @@ func (ctrl *cartController) AddItem(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, "item added to cart", resp.Items)
+	response.Success(c, http.StatusOK, "item added to cart", resp)
 }
 
 // RemoveItem handles DELETE /cart/items/:productId.
@@ -107,7 +107,7 @@ func (ctrl *cartController) RemoveItem(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, "item removed from cart", resp.Items)
+	response.Success(c, http.StatusOK, "item removed from cart", resp)
 }
 
 // UpdateItemQuantity handles PUT /cart/items/:productId.
@@ -138,5 +138,5 @@ func (ctrl *cartController) UpdateItemQuantity(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, "cart item updated", resp.Items)
+	response.Success(c, http.StatusOK, "cart item updated", resp)
 }

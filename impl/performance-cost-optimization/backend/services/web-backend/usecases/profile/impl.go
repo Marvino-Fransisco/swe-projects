@@ -2,18 +2,28 @@ package profile
 
 import (
 	"context"
+	"log"
 
 	"web-backend/apperror"
 
+	"shared/config"
 	"shared/domain/user"
 )
 
 type profileUseCase struct {
-	userSvc *user.UserService
+	userSvc       *user.UserService
+	userCacheRepo user.UserCacheRepository
+	dbTx          config.DBTransaction
+	redisTx       config.RedisTransaction
 }
 
-func NewProfileUseCase(userSvc *user.UserService) ProfileUseCase {
-	return &profileUseCase{userSvc: userSvc}
+func NewProfileUseCase(userSvc *user.UserService, userCacheRepo user.UserCacheRepository, dbTx config.DBTransaction, redisTx config.RedisTransaction) ProfileUseCase {
+	return &profileUseCase{
+		userSvc:       userSvc,
+		userCacheRepo: userCacheRepo,
+		dbTx:          dbTx,
+		redisTx:       redisTx,
+	}
 }
 
 func (uc *profileUseCase) GetProfile(ctx context.Context, req GetProfileRequest) (*ProfileResponse, error) {
@@ -26,9 +36,38 @@ func (uc *profileUseCase) GetProfile(ctx context.Context, req GetProfileRequest)
 }
 
 func (uc *profileUseCase) UpdateProfile(ctx context.Context, req UpdateProfileRequest) (*ProfileResponse, error) {
-	u, err := uc.userSvc.UpdateProfile(ctx, req.UserID, req.Name, req.Email, req.Address, "")
+	var u *user.User
+
+	err := uc.dbTx(ctx, func(txCtx context.Context) error {
+		var err error
+		u, err = uc.userSvc.UpdateProfile(ctx, req.UserID, req.Name, req.Email, req.Address, "")
+		if err != nil {
+			return apperror.NewBadRequest(err.Error())
+		}
+		return nil
+	})
 	if err != nil {
-		return nil, apperror.NewBadRequest(err.Error())
+		return nil, err
+	}
+
+	err = uc.redisTx(ctx, func(txCtx context.Context) error {
+		var err error
+
+		err = uc.userCacheRepo.Delete(txCtx, u.ID)
+		if err != nil {
+			return err
+		}
+
+		err = uc.userCacheRepo.Set(txCtx, u)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Printf("cache error: %v", err)
 	}
 
 	return mapUserToProfileResponse(u), nil

@@ -36,7 +36,3 @@ type GetCartResponse struct {
 	Items      []CartItem `json:"items"`
 	NextCursor string     `json:"next_cursor"` // base64-encoded ID of last item, empty string if no more items
 }
-
-type CartResponse struct {
-	Items []CartItem `json:"items"`
-}

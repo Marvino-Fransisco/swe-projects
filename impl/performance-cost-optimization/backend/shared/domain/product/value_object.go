@@ -4,6 +4,7 @@ package product
 import (
 	"database/sql/driver"
 	"errors"
+	"strconv"
 )
 
 // --- Price Value Object ---
@@ -42,8 +43,53 @@ func (p *Price) Scan(value interface{}) error {
 		*p = Price(v)
 	case int64:
 		*p = Price(v)
+	case string:
+		f, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return err
+		}
+		*p = Price(f)
 	default:
 		return errors.New("cannot scan Price from non-numeric type")
+	}
+
+	return nil
+}
+
+// --- View Value Object ---
+
+// View represents a product's view count.
+type View int64
+
+// NewView creates a View value object.
+func NewView(v int64) View {
+	return View(v)
+}
+
+// Int64 returns the int64 representation of the View.
+func (v View) Int64() int64 {
+	return int64(v)
+}
+
+// Value implements the driver.Valuer interface for database writes.
+func (v View) Value() (driver.Value, error) {
+	return int64(v), nil
+}
+
+// Scan implements the sql.Scanner interface for database reads.
+func (v *View) Scan(value interface{}) error {
+	if value == nil {
+		*v = 0
+		return nil
+	}
+
+	switch val := value.(type) {
+	case int64:
+		*v = View(val)
+	case float64:
+		*v = View(int64(val))
+	default:
+		return errors.New("cannot scan View from non-numeric type")
 	}
 
 	return nil

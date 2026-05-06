@@ -4,20 +4,30 @@ import (
 	"context"
 
 	"mobile-backend/apperror"
+	"mobile-backend/repository"
 
 	"shared/domain/cart"
 	"shared/domain/order"
 )
 
 type checkoutUseCase struct {
-	cartSvc  *cart.CartService
-	orderSvc *order.OrderService
+	cartSvc        *cart.CartService
+	orderSvc       *order.OrderService
+	cartQueryRepo  repository.CartQueryRepository
+	orderQueryRepo repository.OrderQueryRepository
 }
 
-func NewCheckoutUseCase(cartSvc *cart.CartService, orderSvc *order.OrderService) CheckoutUseCase {
+func NewCheckoutUseCase(
+	cartSvc *cart.CartService,
+	orderSvc *order.OrderService,
+	cartQueryRepo repository.CartQueryRepository,
+	orderQueryRepo repository.OrderQueryRepository,
+) CheckoutUseCase {
 	return &checkoutUseCase{
-		cartSvc:  cartSvc,
-		orderSvc: orderSvc,
+		cartSvc:        cartSvc,
+		orderSvc:       orderSvc,
+		cartQueryRepo:  cartQueryRepo,
+		orderQueryRepo: orderQueryRepo,
 	}
 }
 
@@ -32,7 +42,7 @@ func mapOrderToResponse(o *order.Order) *OrderResponse {
 }
 
 func (uc *checkoutUseCase) PlaceOrder(ctx context.Context, req PlaceOrderRequest) (*OrderResponse, error) {
-	items, err := uc.cartSvc.GetCart(ctx, req.UserID)
+	items, err := uc.cartQueryRepo.FindAllByUserID(ctx, req.UserID)
 	if err != nil {
 		return nil, apperror.NewBadRequest("failed to retrieve cart")
 	}
@@ -74,7 +84,7 @@ func (uc *checkoutUseCase) GetOrder(ctx context.Context, req GetOrderRequest) (*
 }
 
 func (uc *checkoutUseCase) GetOrderHistory(ctx context.Context, req GetOrderHistoryRequest) (*OrderHistoryResponse, error) {
-	orders, total, err := uc.orderSvc.GetHistory(ctx, req.UserID, req.Page, req.PageSize)
+	orders, total, err := uc.orderQueryRepo.FindByUser(ctx, req.UserID, req.Page, req.PageSize)
 	if err != nil {
 		return nil, apperror.NewBadRequest(err.Error())
 	}

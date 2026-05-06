@@ -4,6 +4,7 @@ go 1.26.2
 
 require (
 	github.com/gin-gonic/gin v1.12.0
+	gorm.io/gorm v1.31.1
 	shared v0.0.0
 )
 
@@ -49,7 +50,6 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gorm.io/driver/postgres v1.5.11 // indirect
-	gorm.io/gorm v1.31.1 // indirect
 )
 
 replace shared => /workspace/shared

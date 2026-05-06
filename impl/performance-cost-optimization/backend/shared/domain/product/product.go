@@ -15,6 +15,7 @@ type Product struct {
 	Description string        `gorm:"type:text" json:"description"`
 	Price       Price         `gorm:"type:decimal(10,2);not null;default:0" json:"price"`
 	Stock       Stock         `gorm:"type:integer;not null;default:0" json:"stock"`
+	View        View          `gorm:"type:bigint;not null;default:0" json:"view"`
 	Status      ProductStatus `gorm:"type:varchar(20);not null;default:'EMPTY'" json:"status"`
 	CreatedAt   time.Time     `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt   time.Time     `gorm:"autoUpdateTime" json:"updated_at"`

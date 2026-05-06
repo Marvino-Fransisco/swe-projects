@@ -1,6 +1,8 @@
 package user
 
-import "context"
+import (
+	"context"
+)
 
 // UserRepository defines the interface for user persistence operations.
 type UserRepository interface {

@@ -27,20 +27,10 @@ type ProductRepository interface {
 	// Returns nil if not found.
 	FindByID(ctx context.Context, id string) (*Product, error)
 
-	// FindAll retrieves a filtered and paginated list of products.
-	// Returns the products and the total count of matching records.
-	FindAll(ctx context.Context, filter ProductFilter) ([]Product, int64, error)
-
-	// SearchByName searches for products by name with pagination.
-	// Returns the products and the total count of matching records.
-	SearchByName(ctx context.Context, query string, page, pageSize int) ([]Product, int64, error)
-
 	// FindAllCategories retrieves all product categories.
 	FindAllCategories(ctx context.Context) ([]Category, error)
 
-	// GetViewCount retrieves the current view count for a product.
-	GetViewCount(ctx context.Context, productID string) (int64, error)
-
-	// IncrementViewCount increments the view count for a product by 1.
-	IncrementViewCount(ctx context.Context, productID string) error
+	// AddViewCount atomically increments the view count for a product in the database
+	// using UPDATE products SET view = view + count WHERE id = productID.
+	AddViewCount(ctx context.Context, productID string, count int64) error
 }

@@ -48,16 +48,3 @@ func (s *OrderService) GetByID(ctx context.Context, userID, orderID string) (*Or
 	}
 	return order, nil
 }
-
-// GetHistory retrieves a paginated list of orders for a user.
-// Returns the orders and the total count of matching records.
-func (s *OrderService) GetHistory(ctx context.Context, userID string, page, pageSize int) ([]Order, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 20
-	}
-
-	return s.repo.FindByUser(ctx, userID, page, pageSize)
-}

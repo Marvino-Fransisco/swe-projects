@@ -3,8 +3,9 @@ package cart
 import cartDomain "shared/domain/cart"
 
 type GetCartRequest struct {
-	UserID string
-	Page   int
+	UserID   string
+	Page     int
+	PageSize int
 }
 
 type AddCartItemRequest struct {
@@ -25,11 +26,11 @@ type UpdateCartItemRequest struct {
 }
 
 type GetCartResponse struct {
-	Items      []cartDomain.Cart `json:"carts"`
-	Page       int               `json:"page"`
-	TotalPages int               `json:"totalPages"`
+	Items      []cartDomain.CartItem `json:"items"`
+	Page       int                   `json:"page"`
+	TotalPages int                   `json:"totalPages"`
 }
 
 type CartResponse struct {
-	Items []cartDomain.Cart `json:"items"`
+	Item *cartDomain.CartItem `json:"item"`
 }

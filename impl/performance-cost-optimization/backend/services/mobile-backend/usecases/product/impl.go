@@ -4,16 +4,24 @@ import (
 	"context"
 
 	"mobile-backend/apperror"
+	"mobile-backend/repository"
 
 	productDomain "shared/domain/product"
 )
 
 type productUseCase struct {
-	productSvc *productDomain.ProductService
+	productSvc       *productDomain.ProductService
+	productQueryRepo repository.ProductQueryRepository
 }
 
-func NewProductUseCase(productSvc *productDomain.ProductService) ProductUseCase {
-	return &productUseCase{productSvc: productSvc}
+func NewProductUseCase(
+	productSvc *productDomain.ProductService,
+	productQueryRepo repository.ProductQueryRepository,
+) ProductUseCase {
+	return &productUseCase{
+		productSvc:       productSvc,
+		productQueryRepo: productQueryRepo,
+	}
 }
 
 // mapToSummary converts a slice of domain Products to slim ProductSummary responses.
@@ -45,7 +53,7 @@ func (uc *productUseCase) List(ctx context.Context, req ListProductsRequest) (*L
 		MaxPrice:   req.MaxPrice,
 	}
 
-	products, total, err := uc.productSvc.List(ctx, filter)
+	products, total, err := uc.productQueryRepo.FindAll(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +65,7 @@ func (uc *productUseCase) List(ctx context.Context, req ListProductsRequest) (*L
 }
 
 func (uc *productUseCase) Search(ctx context.Context, req SearchProductsRequest) (*SearchProductsResponse, error) {
-	products, total, err := uc.productSvc.Search(ctx, req.Query, req.Page, req.PageSize)
+	products, total, err := uc.productQueryRepo.SearchByName(ctx, req.Query, req.Page, req.PageSize)
 	if err != nil {
 		return nil, err
 	}
