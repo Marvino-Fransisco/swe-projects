@@ -1,3 +1,4 @@
+# Build stage
 FROM golang:1.26.2-bookworm AS build
 
 WORKDIR /workspace
@@ -29,6 +30,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /workspace/b
 WORKDIR /workspace/services/workers
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /workspace/bin/workers .
 
+# Final Stage
 FROM golang:1.26.2-alpine
 
 RUN apk add --no-cache ca-certificates && \
