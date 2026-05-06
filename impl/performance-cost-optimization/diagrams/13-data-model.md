@@ -13,7 +13,7 @@ erDiagram
     }
 
     user_preferences {
-        uuid user_id PK_FK
+        uuid user_id PK
         varchar theme
         varchar language
         timestamp created_at
@@ -40,8 +40,8 @@ erDiagram
     }
 
     cart_items {
-        uuid cart_id PK_FK
-        uuid product_id PK_FK
+        uuid cart_id PK
+        uuid product_id PK
         integer quantity
     }
 
@@ -55,8 +55,8 @@ erDiagram
     }
 
     order_details {
-        uuid order_id PK_FK
-        uuid product_id PK_FK
+        uuid order_id PK
+        uuid product_id PK
         integer quantity
     }
 
