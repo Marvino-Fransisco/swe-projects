@@ -1,4 +1,4 @@
-# Software Engineering
+# Software Engineering - Projects
 
 A custom experimentation and learning project to explore real-world use cases
 using best practices and design patterns to solve real-world problems.
