@@ -1,0 +1,8 @@
+{
+  "name": "web-backend",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "devuser",
+  "updateRemoteUserUID": true
+}

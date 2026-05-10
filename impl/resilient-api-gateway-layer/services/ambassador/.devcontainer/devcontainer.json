@@ -1,0 +1,8 @@
+{
+  "name": "Resilient API Gateway Layer",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "devuser",
+  "updateRemoteUserUID": true,
+}

@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace
+    ports: # Intened to test using postman
+      - "6969:6969"
+    networks:
+      - resilient-api-gateway-layer_dev
+
+networks:
+  resilient-api-gateway-layer_dev:
+    external: true

@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace/app
+      - ../../shared:/workspace/shared
+    ports:
+      - "8080:8080"
+    networks:
+      - resilient-api-gateway-layer_dev
+
+networks:
+  resilient-api-gateway-layer_dev:
+    external: true

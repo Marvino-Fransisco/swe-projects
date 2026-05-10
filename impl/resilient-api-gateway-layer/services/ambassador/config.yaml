@@ -1,0 +1,9 @@
+services:
+  web-backend:
+    host: web-backend_devcontainer-app-1
+    port: 8080
+    timeout: 5
+    threshold: 5
+    max_connections: 10
+    queue_timeout: 500
+    request_deadline: 60
