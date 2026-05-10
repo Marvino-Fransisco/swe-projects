@@ -66,7 +66,7 @@ classDiagram
 
     class CircuitBreakerManager {
         -mu: Mutex
-        -m: map[string]CircuitBreaker
+        -m: map of CircuitBreaker
         +NewCircuitBreakerManager() CircuitBreakerManager
         +Get(key string) CircuitBreaker
         +Set(key string, cb CircuitBreaker)
@@ -74,7 +74,7 @@ classDiagram
     }
 
     class Bulkhead {
-        -sem: chan struct{}
+        -sem: chan struct
         -maxConns: int
         -queueTimeout: Duration
         +NewBulkhead(maxConnections, queueTimeout) Bulkhead
@@ -86,7 +86,7 @@ classDiagram
 
     class BulkheadManager {
         -mu: Mutex
-        -m: map[string]Bulkhead
+        -m: map of Bulkhead
         +NewBulkheadManager() BulkheadManager
         +Get(key string) Bulkhead
         +Set(key string, b Bulkhead)
@@ -112,7 +112,7 @@ classDiagram
         +RequestID: string
         +URL: string
         +Method: string
-        +Headers: map[string]string
+        +Headers: map of string
         +Body: any
         +TargetServiceName: string
     }
@@ -173,7 +173,7 @@ classDiagram
     }
 
     class ConfigStruct {
-        +Services: map[string]ServiceConfig
+        +Services: map of ServiceConfig
     }
 
     main --> SetupRouter

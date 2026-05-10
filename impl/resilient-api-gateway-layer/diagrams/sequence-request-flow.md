@@ -59,7 +59,7 @@ sequenceDiagram
     Svc->>CB: AllowRequest()
     CB-->>Svc: true (CLOSED)
 
-    rect rgb(255, 200, 200)
+    rect rgb(80, 50, 50)
         Note over Svc,Up: Attempt 1
         Svc->>Up: HTTP Request
         Up-->>Svc: Timeout Error
@@ -68,7 +68,7 @@ sequenceDiagram
         Note over Svc: Exponential backoff wait
     end
 
-    rect rgb(255, 200, 200)
+    rect rgb(80, 50, 50)
         Note over Svc,Up: Attempt 2
         Svc->>Up: HTTP Request
         Up-->>Svc: Connection Refused
@@ -79,7 +79,7 @@ sequenceDiagram
 
     Note over Svc,Up: Attempts 3-5 also fail...
 
-    rect rgb(255, 100, 100)
+    rect rgb(100, 30, 30)
         Note over Svc,Up: Attempt 5 (threshold reached)
         Svc->>Up: HTTP Request
         Up-->>Svc: Timeout Error
