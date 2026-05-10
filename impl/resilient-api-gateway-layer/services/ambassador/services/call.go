@@ -387,6 +387,9 @@ func setTimeSleep(attempt int) time.Duration {
 
 	backoff := min(cap, base<<attempt)
 	half := backoff / 2
+	if half < 1 {
+		half = 1
+	}
 	wait := half + rand.Intn(half)
 
 	return time.Duration(wait) * time.Second

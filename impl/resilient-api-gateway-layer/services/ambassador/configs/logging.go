@@ -7,22 +7,21 @@ import (
 )
 
 func NewLogger() *logrus.Logger {
-	if lib.Env.Environment == "dev" {
+	if lib.Env.Environment == "dev" || lib.Env.Environment == "development" {
 		return InitDevLogger()
-	} else {
-		return InitProdLogger()
 	}
+	return InitProdLogger()
 }
 
 func InitDevLogger() *logrus.Logger {
 	logger := logrus.New()
 
 	logger.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
+		FullTimestamp:   true,
+		TimestampFormat: "15:04:05",
 	})
 
-	logger.SetLevel(logrus.DebugLevel)
-	logger.SetReportCaller(true)
+	logger.SetLevel(logrus.InfoLevel)
 
 	return logger
 }

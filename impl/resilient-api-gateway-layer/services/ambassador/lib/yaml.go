@@ -26,7 +26,10 @@ var Config ConfigStruct
 func init() {
 	data, err := os.ReadFile("config.yaml")
 	if err != nil {
-		log.Fatal("Failed to read config.yaml:", err)
+		Config = ConfigStruct{
+			Services: make(map[string]ServiceConfig),
+		}
+		return
 	}
 
 	if err := yaml.Unmarshal(data, &Config); err != nil {

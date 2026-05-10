@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -17,7 +18,11 @@ var Env EnvStruct
 func init() {
 	file, err := os.Open(".env")
 	if err != nil {
-		log.Fatal("Failed to read .env:", err)
+		Env = EnvStruct{
+			Port:        getEnv("PORT", "6969"),
+			Environment: getEnv("ENVIRONMENT", "development"),
+		}
+		return
 	}
 	defer file.Close()
 
@@ -49,4 +54,20 @@ func init() {
 		Port:        envMap["PORT"],
 		Environment: envMap["ENVIRONMENT"],
 	}
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if i, err := strconv.Atoi(v); err == nil {
+			return i
+		}
+	}
+	return fallback
 }

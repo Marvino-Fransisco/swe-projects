@@ -128,7 +128,8 @@ resilient-api-gateway-layer/
 │   ├── error-handling.md
 │   ├── pattern-interaction.md
 │   ├── retry-timeout-flow.md
-│   └── sequence-request-flow.md
+│   ├── sequence-request-flow.md
+│   └── testing-strategy.md
 └── services/
     ├── ambassador/                   # Gateway service
     │   ├── main.go                   # Entry point, wiring
@@ -151,14 +152,18 @@ resilient-api-gateway-layer/
     │   │   └── create_request_id.go  # UUID + log context middleware
     │   ├── pkg/
     │   │   ├── bulkhead.go           # Semaphore-based bulkhead
+    │   │   ├── bulkhead_test.go      # Bulkhead unit tests
     │   │   ├── bulkhead-manager.go   # Per-service bulkhead registry
     │   │   ├── circuit-breaker.go    # Circuit breaker with FSM
+    │   │   ├── circuit-breaker_test.go  # Circuit breaker unit tests
     │   │   ├── circuit-breaker-manager.go  # Per-service CB registry
-    │   │   └── fsm.go               # Generic finite state machine
+    │   │   ├── fsm.go               # Generic finite state machine
+    │   │   └── fsm_test.go          # FSM unit tests
     │   ├── routers/
     │   │   └── router.go             # Gin route definitions
     │   └── services/
     │       ├── call.go               # Core request proxy logic
+    │       ├── call_test.go          # Integration tests (full flow)
     │       └── health.go             # Health aggregation
     └── web-backend/                  # Downstream e-commerce service
         └── main.go                   # Runs on :8080
@@ -292,6 +297,51 @@ Three layers of timeout ensure no request hangs indefinitely:
 | **Response Timeout** | 10s | Response header per attempt |
 | **Request Deadline** | 60s | Total wall-clock including all retries |
 
+## Testing
+
+See [diagrams/testing-strategy.md](diagrams/testing-strategy.md) for the full
+testing strategy diagram.
+
+Tests use Go's built-in `testing` package with
+[testify](https://github.com/stretchr/testify) assertions. Integration tests
+use `net/http/httptest` to spin up fake upstream servers with configurable
+behavior.
+
+### Run All Tests
+
+```bash
+cd services/ambassador
+go test ./... -v
+```
+
+### Test Suite Overview
+
+| Test File | Type | Tests | Description |
+| --- | --- | --- | --- |
+| `pkg/fsm_test.go` | Unit | 2 | FSM valid and invalid transitions |
+| `pkg/circuit-breaker_test.go` | Unit | 4 | Closed → Open → Half-Open → Closed lifecycle |
+| `pkg/bulkhead_test.go` | Unit | 2 | Pool capacity and active connection tracking |
+| `services/call_test.go` | Integration | 4 | Full request flow through all resilience layers |
+
+### Integration Test Scenarios
+
+| Test | Scenario | Validates |
+| --- | --- | --- |
+| `TestCallService_CircuitOpensOn500` | Upstream returns 500 | Circuit immediately trips to OPEN on 5xx |
+| `TestCallService_TimeoutTriggersRetry` | Upstream hangs (15s) | Retries up to threshold, returns `TIMEOUT` |
+| `TestCallService_CircuitHalfOpenThenClosedOnRecovery` | Upstream recovers | HALF-OPEN probe succeeds → circuit closes |
+| `TestCallService_BulkheadRejectsWhenPoolFull` | Concurrent load (5 reqs, pool=2) | Excess requests get `CAPACITY_EXCEEDED` |
+
+### Test Infrastructure
+
+- **`testEnv` struct** — encapsulates logger, managers, service, and fake server
+  port for each test
+- **`setupTestEnv(t, handler)`** — creates an `httptest.Server` with a custom
+  handler, registers a `"test"` service in config, and wires up fresh bulkhead
+  and circuit breaker instances
+- **`newTestRequest()`** — builds a standard `CallRequest` targeting the
+  `"test"` service
+
 ## Diagrams
 
 All diagrams are written in Mermaid syntax and located in the `diagrams/`
@@ -307,6 +357,7 @@ directory:
 | Retry and Timeout Strategy | [retry-timeout-flow.md](diagrams/retry-timeout-flow.md) | Backoff, idempotency, timeout hierarchy |
 | Error Handling | [error-handling.md](diagrams/error-handling.md) | Error normalization and sanitization |
 | Pattern Interaction | [pattern-interaction.md](diagrams/pattern-interaction.md) | How all patterns work together |
+| Testing Strategy | [testing-strategy.md](diagrams/testing-strategy.md) | Unit and integration test coverage |
 
 ## Getting Started
 
@@ -380,5 +431,6 @@ curl http://localhost:6969/status
 - **HTTP Framework:** Gin
 - **Logging:** Logrus (structured logging, dev/prod formatters)
 - **Resilience:** Custom implementations (no external resilience library)
+- **Testing:** testify (assertions), net/http/httptest (fake servers)
 - **Database:** PostgreSQL (via Docker Compose)
 - **Containerization:** Docker, Docker Compose

@@ -7,3 +7,12 @@ services:
     max_connections: 10
     queue_timeout: 500
     request_deadline: 60
+
+test:
+    host: 127.0.0.1
+    port: 0                      # will be overridden by httptest
+    timeout: 2                   # short cooldown so tests don't hang
+    threshold: 3                 # low so circuit opens quickly
+    max_connections: 5           # small pool for bulkhead tests
+    queue_timeout: 100           # 100ms — short wait for rejection tests
+    request_deadline: 10         # 10s — enough for retries but not infinite
