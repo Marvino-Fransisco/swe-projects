@@ -21,8 +21,8 @@ func main() {
 
 	router := bootstrap.InitRouter(application)
 
-	log.Println("Inventory service starting on :8001")
-	if err := router.Run(":8001"); err != nil {
+	log.Println("Inventory service starting on 0.0.0.0:8001")
+	if err := router.Run("0.0.0.0:8001"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }

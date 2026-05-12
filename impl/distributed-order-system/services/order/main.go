@@ -22,7 +22,7 @@ func main() {
 	router := bootstrap.InitRouter(application)
 
 	log.Println("Order service starting on :8002")
-	if err := router.Run(":8002"); err != nil {
+	if err := router.Run("0.0.0.0:8002"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
