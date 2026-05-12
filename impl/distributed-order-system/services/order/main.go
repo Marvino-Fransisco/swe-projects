@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"order-service/bootstrap"
 )
@@ -21,8 +22,12 @@ func main() {
 
 	router := bootstrap.InitRouter(application)
 
-	log.Println("Order service starting on :8002")
-	if err := router.Run("0.0.0.0:8002"); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8002"
+	}
+	log.Println("Order service starting on :" + port)
+	if err := router.Run("0.0.0.0:" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }

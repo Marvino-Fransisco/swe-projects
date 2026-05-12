@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"inventory-service/bootstrap"
 )
@@ -21,8 +22,12 @@ func main() {
 
 	router := bootstrap.InitRouter(application)
 
-	log.Println("Inventory service starting on 0.0.0.0:8001")
-	if err := router.Run("0.0.0.0:8001"); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8001"
+	}
+	log.Println("Inventory service starting on 0.0.0.0:" + port)
+	if err := router.Run("0.0.0.0:" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
